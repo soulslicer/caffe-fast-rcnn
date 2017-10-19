@@ -600,13 +600,13 @@ void Net<Dtype>::BackwardFromTo(int start, int end) {
 }
 
 template <typename Dtype>
-void Net<Dtype>::DeconvFromTo(int start, int end) {
+void Net<Dtype>::DeconvFromTo(int start, int end, int deconv_type) {
   CHECK_GE(end, 0);
   CHECK_LT(start, layers_.size());
   for (int i = start; i >= end; --i) {
     if (layer_need_backward_[i]) {
       layers_[i]->Deconv(
-          top_vecs_[i], bottom_need_backward_[i], bottom_vecs_[i]);
+          top_vecs_[i], bottom_need_backward_[i], bottom_vecs_[i], deconv_type);
       if (debug_info_) { DeconvDebugInfo(i); }
     }
   }
@@ -776,18 +776,18 @@ void Net<Dtype>::Backward() {
 }
 
 template <typename Dtype>
-void Net<Dtype>::DeconvFrom(int start) {
-  DeconvFromTo(start, 0);
+void Net<Dtype>::DeconvFrom(int start, int deconv_type) {
+  DeconvFromTo(start, 0, deconv_type);
 }
 
 template <typename Dtype>
-void Net<Dtype>::DeconvTo(int end) {
-  DeconvFromTo(layers_.size() - 1, end);
+void Net<Dtype>::DeconvTo(int end, int deconv_type) {
+  DeconvFromTo(layers_.size() - 1, end, deconv_type);
 }
 
 template <typename Dtype>
-void Net<Dtype>::Deconv() {
-  DeconvFromTo(layers_.size() - 1, 0);
+void Net<Dtype>::Deconv(int deconv_type) {
+  DeconvFromTo(layers_.size() - 1, 0, deconv_type);
 }
 
 template <typename Dtype>

@@ -197,10 +197,10 @@ template void LRNLayer<double>::CrossChannelBackward_gpu(
 
 template <typename Dtype>
 void LRNLayer<Dtype>::Deconv_gpu(const vector<Blob<Dtype>*>& top,
-    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
+    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom, int deconv_type) {
   if (deconv_ignore_) {
     // Deconv Option 1: pass through (ignore LRN layer):
-    Deconv_passthrough_gpu(top, propagate_down, bottom);
+    Deconv_passthrough_gpu(top, propagate_down, bottom, deconv_type);
   } else {
     // Deconv Option 2: compute derivatives via backprop:
     Backward_gpu(top, propagate_down, bottom);
@@ -217,7 +217,7 @@ __global__ void LRNDeconv_passthrough(const int n, const Dtype* in_diff,
 
 template <typename Dtype>
 void LRNLayer<Dtype>::Deconv_passthrough_gpu(const vector<Blob<Dtype>*>& top,
-    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
+    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom, int deconv_type) {
   // Option 2: pass through (ignore LRN layer)
   if (propagate_down[0]) {
     const Dtype* top_diff = top[0]->gpu_diff();
@@ -231,10 +231,10 @@ void LRNLayer<Dtype>::Deconv_passthrough_gpu(const vector<Blob<Dtype>*>& top,
 }
 template void LRNLayer<float>::Deconv_passthrough_gpu(
     const vector<Blob<float>*>& top, const vector<bool>& propagate_down,
-    const vector<Blob<float>*>& bottom);
+    const vector<Blob<float>*>& bottom, int deconv_type);
 template void LRNLayer<double>::Deconv_passthrough_gpu(
     const vector<Blob<double>*>& top, const vector<bool>& propagate_down,
-    const vector<Blob<double>*>& bottom);
+    const vector<Blob<double>*>& bottom, int deconv_type);
 
 
 

@@ -78,10 +78,10 @@ class Net {
   /**
    * The network deconv works similarly to backward and also takes no input and output.
    */
-  void Deconv();
-  void DeconvFromTo(int start, int end);
-  void DeconvFrom(int start);
-  void DeconvTo(int end);
+  void Deconv(int deconv_type);
+  void DeconvFromTo(int start, int end, int deconv_type);
+  void DeconvFrom(int start, int deconv_type);
+  void DeconvTo(int end, int deconv_type);
 
   /**
    * @brief Reshape all layers from bottom to top.

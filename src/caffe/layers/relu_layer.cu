@@ -58,17 +58,27 @@ void ReLULayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 }
 
 template <typename Dtype>
-__global__ void ReLUDeconv(const int n, const Dtype* in_diff,
-    Dtype* out_diff) {
+__global__ void ReLUDeconv_ZF(const int n, const Dtype* in_diff,
+    const Dtype* in_data, Dtype* out_diff, Dtype negative_slope) {
   CUDA_KERNEL_LOOP(index, n) {
+    // Zeiler & Fergus deconv
     out_diff[index] = in_diff[index] > 0 ? in_diff[index] : 0;
+  }
+}
+
+template <typename Dtype>
+__global__ void ReLUDeconv_GB(const int n, const Dtype* in_diff,
+    const Dtype* in_data, Dtype* out_diff, Dtype negative_slope) {
+  CUDA_KERNEL_LOOP(index, n) {
+    // "guided backprop" deconv
+    out_diff[index] = in_diff[index] * ((in_data[index] > 0) + (in_data[index] <= 0) * negative_slope) * (in_diff[index] > 0);
   }
 }
 
 template <typename Dtype>
 void ReLULayer<Dtype>::Deconv_gpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down,
-    const vector<Blob<Dtype>*>& bottom) {
+    const vector<Blob<Dtype>*>& bottom, int deconv_type) {
   if (propagate_down[0]) {
     const Dtype* bottom_data = bottom[0]->gpu_data();
     const Dtype* top_diff = top[0]->gpu_diff();
@@ -77,9 +87,20 @@ void ReLULayer<Dtype>::Deconv_gpu(const vector<Blob<Dtype>*>& top,
     Dtype negative_slope = this->layer_param_.relu_param().negative_slope();
     if (negative_slope != Dtype(0))
       LOG(WARNING) << "negative_slope parameter = " << negative_slope << " but nonzero negative_slope params are not supported for Deconv through RELU.";
-    // NOLINT_NEXT_LINE(whitespace/operators)
-    ReLUDeconv<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
-        count, top_diff, bottom_diff);
+
+    // Zeiler & Fergus deconv
+    if (deconv_type == 0) {
+      // NOLINT_NEXT_LINE(whitespace/operators)
+      ReLUDeconv_ZF<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+          count, top_diff, bottom_data, bottom_diff, negative_slope);
+    }
+    // "guided backprop" deconv
+    else if (deconv_type == 1) {
+      // NOLINT_NEXT_LINE(whitespace/operators)
+      ReLUDeconv_GB<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
+          count, top_diff, bottom_data, bottom_diff, negative_slope);
+    }
+
     CUDA_POST_KERNEL_CHECK;
   }
 }

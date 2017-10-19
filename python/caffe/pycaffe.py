@@ -92,23 +92,24 @@ def _Net_backward_from_layer(self, start_name, start_diff, diffs=None, zero_high
     outs: {blob name: diff ndarray} dict.
     """
 
-    if start_diff.shape != self.blobs[start_name].diff.shape:
-        raise Exception('Expected start_diff of shape %s but got %s' % (self.blobs[start_name].diff.shape, start_diff.shape))
+    start_top_name = self.top_names[start_name][0]
+    if start_diff.shape != self.blobs[start_top_name].diff.shape:
+        raise Exception('Expected start_diff of shape %s but got %s' % (self.blobs[start_top_name].diff.shape, start_diff.shape))
 
-    self.blobs[start_name].diff[...] = start_diff
+    self.blobs[start_top_name].diff[...] = start_diff
 
     if zero_higher:
         past_start = False
         for blob_name, blob in self.blobs.items():
             if past_start:
                 blob.diff[...] = 0
-            if blob_name == start_name:
+            if blob_name == start_top_name:
                 past_start = True
 
     return self.backward(start=start_name, diffs=diffs)
 
 
-def _Net_deconv_from_layer(self, start_name, start_diff, diffs=None, zero_higher=False):
+def _Net_deconv_from_layer(self, start_name, start_diff, diffs=None, zero_higher=False, deconv_type='Zeiler & Fergus'):
     """
     Deconv pass starting from somewhere in the middle of the
     network, starting with the provided diffs.
@@ -118,28 +119,38 @@ def _Net_deconv_from_layer(self, start_name, start_diff, diffs=None, zero_higher
     start_diff: diff to set at start_name layer
     diffs: list of diffs to return in addition to bottom diffs.
     zero_higher: whether or not to zero out higher layers to reflect the true 0 derivative or leave them alone to save time.
+    deconv_type: either 'Zeiler & Fergus' or 'Guided Backprop'
 
     Give
     outs: {blob name: diff ndarray} dict.
     """
 
-    if start_diff.shape != self.blobs[start_name].diff.shape:
-        raise Exception('Expected start_diff of shape %s but got %s' % (self.blobs[start_name].diff.shape, start_diff.shape))
+    # convert deconv type string to int value
+    if deconv_type == 'Zeiler & Fergus':
+        deconv_type_int = 0
+    elif deconv_type == 'Guided Backprop':
+        deconv_type_int = 1
+    else:
+        raise Exception('Unsupported deconv type: %s' % (deconv_type))
 
-    self.blobs[start_name].diff[...] = start_diff
+    start_top_name = self.top_names[start_name][0]
+    if start_diff.shape != self.blobs[start_top_name].diff.shape:
+        raise Exception('Expected start_diff of shape %s but got %s' % (self.blobs[start_top_name].diff.shape, start_diff.shape))
+
+    self.blobs[start_top_name].diff[...] = start_diff
 
     if zero_higher:
         past_start = False
         for blob_name, blob in self.blobs.items():
             if past_start:
                 blob.diff[...] = 0
-            if blob_name == start_name:
+            if blob_name == start_top_name:
                 past_start = True
 
-    return self.deconv(start=start_name, diffs=diffs)
+    return self.deconv(start=start_name, diffs=diffs, deconv_type_int=deconv_type_int)
 
 
-def _Net_deconv(self, diffs=None, start=None, end=None, **kwargs):
+def _Net_deconv(self, diffs=None, start=None, end=None, deconv_type_int=0, **kwargs):
     """
     Deconv pass: prepare diffs and run the net backward in deconv mode. Just like _Net_Backward but calls Deconv instead.
 
@@ -149,6 +160,7 @@ def _Net_deconv(self, diffs=None, start=None, end=None, **kwargs):
             If None, top diffs are taken from forward loss.
     start: optional name of layer at which to begin the backward pass
     end: optional name of layer at which to finish the backward pass (inclusive)
+    deconv_type_int: type of deconv to use, 0 for ZF, 1 for guided backprop
 
     Give
     outs: {blob name: diff ndarray} dict.
@@ -180,7 +192,7 @@ def _Net_deconv(self, diffs=None, start=None, end=None, **kwargs):
                 raise Exception('Diff is not batch sized')
             self.blobs[top].diff[...] = diff
 
-    self._deconv(start_ind, end_ind)
+    self._deconv(start_ind, end_ind, deconv_type_int)
 
     # Unpack diffs to extract
     return {out: self.blobs[out].diff for out in outputs}

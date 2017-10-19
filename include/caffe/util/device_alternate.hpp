@@ -29,7 +29,7 @@ void classname<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top, \
 template <typename Dtype> \
 void classname<Dtype>::Deconv_gpu(const vector<Blob<Dtype>*>& top, \
     const vector<bool>& propagate_down, \
-    const vector<Blob<Dtype>*>& bottom) { NO_GPU; } \
+    const vector<Blob<Dtype>*>& bottom, int deconv_type) { NO_GPU; } \
 
 #define STUB_GPU_FORWARD(classname, funcname) \
 template <typename Dtype> \
@@ -46,7 +46,7 @@ void classname<Dtype>::funcname##_##gpu(const vector<Blob<Dtype>*>& top, \
 template <typename Dtype> \
 void classname<Dtype>::funcname##_##gpu(const vector<Blob<Dtype>*>& top, \
     const vector<bool>& propagate_down, \
-    const vector<Blob<Dtype>*>& bottom) { NO_GPU; } \
+    const vector<Blob<Dtype>*>& bottom, int deconv_type) { NO_GPU; } \
 
 #else  // Normal GPU + CPU Caffe.
 

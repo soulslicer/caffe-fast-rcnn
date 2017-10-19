@@ -65,11 +65,13 @@ private:\
   template void classname<float>::Deconv_gpu( \
       const std::vector<Blob<float>*>& top, \
       const std::vector<bool>& propagate_down, \
-      const std::vector<Blob<float>*>& bottom); \
+      const std::vector<Blob<float>*>& bottom, \
+      int deconv_type); \
   template void classname<double>::Deconv_gpu( \
       const std::vector<Blob<double>*>& top, \
       const std::vector<bool>& propagate_down, \
-      const std::vector<Blob<double>*>& bottom)
+      const std::vector<Blob<double>*>& bottom, \
+      int deconv_type)
 
 #define INSTANTIATE_LAYER_GPU_FUNCS(classname) \
   INSTANTIATE_LAYER_GPU_FORWARD(classname); \

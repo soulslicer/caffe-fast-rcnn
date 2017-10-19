@@ -249,10 +249,10 @@ void LRNLayer<Dtype>::WithinChannelBackward(
 
 template <typename Dtype>
 void LRNLayer<Dtype>::Deconv_cpu(const vector<Blob<Dtype>*>& top,
-    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
+    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom, int deconv_type) {
   if (deconv_ignore_) {
     // Deconv Option 1: pass through (ignore LRN layer):
-    Deconv_passthrough_cpu(top, propagate_down, bottom);
+    Deconv_passthrough_cpu(top, propagate_down, bottom, deconv_type);
   } else {
     // Deconv Option 2: compute derivatives via backprop:
     Backward_cpu(top, propagate_down, bottom);
@@ -261,7 +261,7 @@ void LRNLayer<Dtype>::Deconv_cpu(const vector<Blob<Dtype>*>& top,
 
 template <typename Dtype>
 void LRNLayer<Dtype>::Deconv_passthrough_cpu(const vector<Blob<Dtype>*>& top,
-    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
+    const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom, int deconv_type) {
   if (propagate_down[0]) {
     const Dtype* top_diff = top[0]->cpu_diff();
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();

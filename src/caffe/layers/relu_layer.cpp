@@ -38,16 +38,28 @@ void ReLULayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 template <typename Dtype>
 void ReLULayer<Dtype>::Deconv_cpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down,
-    const vector<Blob<Dtype>*>& bottom) {
+    const vector<Blob<Dtype>*>& bottom, int deconv_type) {
+
   if (propagate_down[0]) {
+    const Dtype* bottom_data = bottom[0]->cpu_data();
     const Dtype* top_diff = top[0]->cpu_diff();
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
     const int count = bottom[0]->count();
     Dtype negative_slope = this->layer_param_.relu_param().negative_slope();
     if (negative_slope != Dtype(0))
       LOG(WARNING) << "negative_slope parameter = " << negative_slope << " but nonzero negative_slope params are not supported for Deconv through RELU.";
-    for (int i = 0; i < count; ++i) {
-      bottom_diff[i] = std::max(top_diff[i], Dtype(0));
+
+    // Zeiler & Fergus deconv
+    if (deconv_type == 0) {
+      for (int i = 0; i < count; ++i) {
+        bottom_diff[i] = std::max(top_diff[i], Dtype(0));
+      }
+    }
+    // "guided backprop" deconv
+    else if (deconv_type == 1) {
+      for (int i = 0; i < count; ++i) {
+        bottom_diff[i] = top_diff[i] * ((bottom_data[i] > 0) + negative_slope * (bottom_data[i] <= 0)) * (top_diff[i] > 0);
+      }
     }
   }
 }

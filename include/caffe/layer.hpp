@@ -195,7 +195,8 @@ class Layer {
    */
   inline void Deconv(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down,
-      const vector<Blob<Dtype>*>& bottom);
+      const vector<Blob<Dtype>*>& bottom,
+      int deconv_type);
 
   /**
    * @brief Returns the vector of learnable parameter blobs.
@@ -385,23 +386,27 @@ class Layer {
   }
 
   /**
-   * @brief Using the CPU device, compute the deconv (Zeiler et al, 2013) for the bottom blobs.
+   * @brief Using the CPU device, compute the deconv for the bottom blobs.
+   *        deconv is calclated either using Zeiler et al, 2013 or via "guided backprop"
    */
   virtual void Deconv_cpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down,
-      const vector<Blob<Dtype>*>& bottom) {
+      const vector<Blob<Dtype>*>& bottom,
+      int deconv_type) {
     // LOG(WARNING) << "Explicit Deconv_cpu not implemented for " << type() << " yet; falling back to backward_cpu.";
     Backward_cpu(top, propagate_down, bottom);
   }
   /**
-   * @brief Using the GPU device, compute the deconv (Zeiler et al, 2013) for the bottom blobs.
+   * @brief Using the GPU device, compute the deconv for the bottom blobs.
+   *        deconv is calclated either using Zeiler et al, 2013 or via "guided backprop"
    *        Fall back to Deconv_cpu() if unavailable.
    */
   virtual void Deconv_gpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down,
-      const vector<Blob<Dtype>*>& bottom) {
+      const vector<Blob<Dtype>*>& bottom,
+      int deconv_type) {
     // LOG(WARNING) << "Explicit Deconv_gpu not implemented for " << type() << " yet; falling back to backward_gpu.";
-    Backward_gpu(top, propagate_down, bottom);
+    Deconv_cpu(top, propagate_down, bottom, deconv_type);
   }
 
   /**
@@ -546,13 +551,14 @@ inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
 template <typename Dtype>
 inline void Layer<Dtype>::Deconv(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down,
-    const vector<Blob<Dtype>*>& bottom) {
+    const vector<Blob<Dtype>*>& bottom,
+    int deconv_type) {
   switch (Caffe::mode()) {
   case Caffe::CPU:
-    Deconv_cpu(top, propagate_down, bottom);
+    Deconv_cpu(top, propagate_down, bottom, deconv_type);
     break;
   case Caffe::GPU:
-    Deconv_gpu(top, propagate_down, bottom);
+    Deconv_gpu(top, propagate_down, bottom, deconv_type);
     break;
   default:
     LOG(FATAL) << "Unknown caffe mode.";
